@@ -61,7 +61,7 @@ jobs:
       id: create_release
       with:
         release_name: "mufasa"
-        tag_name: ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
       env:
         GITHUB_TOKEN: ${{ github.token }}
     - name: Upload Windows Artifact
