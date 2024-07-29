@@ -13,3 +13,4 @@ CMakeUserPresets.json
 *~
 *.swp
 *.swo
+*.exe
