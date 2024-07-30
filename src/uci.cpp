@@ -8,7 +8,7 @@ namespace Mufasa{
    }
 
    void UCI::greet(){
-      std::cout << "Mufasa 0.1 by Sirgaliyev Alikhan" << std::endl;
+      std::cout << "Mufasa 0.2.0 by Sirgaliyev Alikhan" << std::endl;
    }
 
    void UCI::loop(std::istream &input){
@@ -26,7 +26,7 @@ namespace Mufasa{
             continue;
          }
          else if(token == "uci"){
-            std::cout << "uciok" << std::endl;
+            uci(is);
          }
          else if(token == "position"){
             position(is);
@@ -50,6 +50,13 @@ namespace Mufasa{
             std::cout << "Unknown command: '" << token << "'" << std::endl;
          }
       }
+   }
+   
+   // @tissatussa remarks
+   void UCI::uci(std::istringstream& is){
+      std::cout << "id name Mufasa 0.2.0" << std::endl;
+      std::cout << "id author Sirgaliyev Alikhan" << std::endl;
+      std::cout << "uciok" << std::endl;
    }
 
    void UCI::go(std::istringstream& is){
