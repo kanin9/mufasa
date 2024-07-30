@@ -14,6 +14,7 @@
 #include<string>
 #include<bitset>
 #include<cassert>
+#include<climits>
 #include<iostream>
 
 namespace Mufasa{
@@ -55,7 +56,10 @@ namespace Mufasa{
       
       std::string toString() const;
       friend std::ostream& operator<<(std::ostream& os, const Move& move);
+      friend operator==(const Move& lhs, const Move& rhs);
    };
+
+   const Move nullmove{};
 
    class BoardState{
       public:
@@ -90,19 +94,29 @@ namespace Mufasa{
       uint64_t alloc;
    };
    
+   enum EntryType{
+      EXACT,
+      LOWER,
+      UPPER
+   };
+
 
    // Transposition Table Entry
    struct TTEntry{
+       uint64_t key;
+       uint64_t age;
        int depth;
        int score;
-       int age;
+       Move move;
+       EntryType type;
    };
 
    class Bitboard{
       public:
       
       Bitboard();
-      uint64_t countMoves();
+      int countFullMoves() const;
+      uint64_t countMoves() const;
       void set_position(std::string fen, std::vector<std::string> moves);
       Piece getPiece(int square) const;
       BoardState getState() const;
@@ -111,16 +125,17 @@ namespace Mufasa{
       void unmakeMove(Move move);
       void pushMove(Move move);
       void fillMoves();
-      void orderMoves(std::vector<Move> &moveList);
+      void orderMoves(std::vector<Move> &moveList, const Move ttmove = nullmove);
       
       uint64_t zobristHash() const;
-
+      
+      void setDue(uint64_t due, uint64_t start);
       const std::vector<Move> getMoves();
 
       int evaluate();
       int quietSearch(int alpha, int beta);
-      std::pair<int, Move> negaMax(int depth, int alpha, int beta, uint64_t start, uint64_t time);
-      std::pair<int, Move> bestMove(Limits limits);
+      std::pair<int, Move> negaMax(int depth, int alpha, int beta, std::vector<Move> &principle);
+      std::pair<int, Move> bestMove(int depth);
       
       Move moveFromUCI(std::string notation);
       
@@ -129,8 +144,14 @@ namespace Mufasa{
       
       private:
       int nodes = 0;
+      int tthits = 0;
+      uint64_t age = 1;
       uint64_t zobrist = 0;
-      std::vector<TTEntry> transpositions;
+      uint64_t duetime = 0; // due time we finish the search
+      uint64_t initime = 0;
+      
+      std::vector<TTEntry> tt;
+      std::vector<int8_t> repetitions;
 
       Magics magics;
       Piece mailbox[64]; // useful for specific piece lookup

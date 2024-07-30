@@ -48,6 +48,10 @@ namespace Mufasa{
       os << move.toString();
       return os;
    }
+
+   operator==(const Move &lhs, const Move &rhs){
+      return (lhs.definition == rhs.definition);
+   }
    
    uint64_t BoardState::zobristHash(){
       uint64_t hash = 0;
@@ -88,9 +92,18 @@ namespace Mufasa{
       pinsHV = 0ULL;
 
       moves.clear();
+
+      tt.clear();
+      tt.resize(0x800000);
+   
+      repetitions.assign(0x800000, 0);
    }
    
-   uint64_t Bitboard::countMoves(){
+   int Bitboard::countFullMoves() const{
+      return history.back().fullMoves;
+   }
+
+   uint64_t Bitboard::countMoves() const{
       return moves.size();
    }
    
@@ -197,10 +210,11 @@ namespace Mufasa{
       int queen = Figure::QUEEN - 1;
       
       if(pieces[figure][friends] == 0ULL){
+           std::cout << "ERROR: " << std::endl;
            for(const auto& x : history){
                std::cout << x.previous << " ";
            }
-           std::cout << "\n";
+           std::cout << std::endl;
       }
 
       assert(pieces[figure][friends] != 0ULL);
@@ -782,11 +796,15 @@ namespace Mufasa{
       fillKingMoves();
    }
 
-   void Bitboard::orderMoves(std::vector<Move> &moveList){
+   void Bitboard::orderMoves(std::vector<Move> &moveList, const Move ttmove){
       for(auto& move : moveList){
          int from = move.start();
          int to = move.end();
          int scoreGuess = 0;
+         
+         if(move == ttmove){
+            scoreGuess += 10000;
+         }
 
          if(mailbox[to]){
             scoreGuess += 10 * mailbox[to].getValue();
@@ -794,19 +812,35 @@ namespace Mufasa{
          }
 
          if(move.getFlags() & Move::PROMOTION){
-            scoreGuess += (move.getFlags() & 0b1111000000000) >> 2;
+            scoreGuess -= 100;
+            int promotion = 300;
+            
+            if(move.getFlags() & Move::TOQUEEN){
+               promotion = 900;
+            }
+            else if(move.getFlags() & Move::TOROOK){
+               promotion = 500;
+            }
+
+            scoreGuess += promotion;
          }
 
          move.score = scoreGuess;
       }
-
-      std::stable_sort(moveList.begin(), moveList.end(), [](const Move x, const Move y){
+      
+      
+      std::sort(moveList.begin(), moveList.end(), [](const Move x, const Move y){
          return (x.score > y.score);
       });
    }
 
    const std::vector<Move> Bitboard::getMoves(){
       return moves;
+   }
+
+   void Bitboard::setDue(uint64_t due, uint64_t start){
+      duetime = due;
+      initime = start;
    }
    
    int Bitboard::evaluate(){
@@ -840,23 +874,53 @@ namespace Mufasa{
       if(gamephase > 24) gamephase = 24;
       
       int score = (mgScore * gamephase + egScore * (24 - gamephase)) / 24;
+
       return score;
    }
 
-   std::pair<int, Move> Bitboard::bestMove(Limits limits){
+   std::pair<int, Move> Bitboard::bestMove(int depth){
       Move bestMove;
       int lastScore = 0;
-      
-      uint64_t allocatedTime = std::min(limits.alloc / 5, 10000ULL);      
-      for(int d = 1; d <= limits.depth && (now() - limits.start < allocatedTime); d++){
+
+      for(int d = 1; d <= depth && now() < duetime; d++){
          nodes = 0;
-
+         
          fillMoves();
-         auto [score, move] = negaMax(d, -oo, oo, limits.start, allocatedTime);
-         std::cout << "info depth " << d << " time " << (now() - limits.start) << " cp " << score << " pv " << move << "\n";
+         int score;
+         Move move;
+         std::vector<Move> principle;
+         
+         if(d <= 4){
+            std::tie(score, move) = negaMax(d, -oo, oo, principle);
+         }
+         else{
+            int window = 20;
+            int alpha = lastScore - window;
+            int beta = lastScore + window;
+            
+            std::tie(score, move) = negaMax(d, alpha, beta, principle);
 
-         lastScore = score;
-         bestMove = move;
+            while((score <= alpha || score >= beta) && (now() < duetime)){
+               if(score <= alpha){
+                  alpha -= window;
+               }
+               else if(score >= beta){
+                  beta += window;
+               }
+               
+               fillMoves();
+               std::tie(score, move) = negaMax(d, alpha, beta, principle);
+               window *= 2;
+            }
+         }
+
+         std::cout << "info depth " << d << " hits " << tthits << " nodes " << nodes << " time " << (now() - initime);
+         std::cout << " score cp " << score << " pv " << move << std::endl;
+         
+         if(now() < duetime){
+            lastScore = score;
+            bestMove = move;
+         }
 
          if(score == oo) break;
       }
@@ -871,15 +935,15 @@ namespace Mufasa{
 
    int Bitboard::quietSearch(int alpha, int beta){
       int standPat = evaluate();
-      
-      if(standPat >= beta){
-         return beta;
-      }
+
+      if(standPat >= beta) return beta;
 
       if(alpha < standPat) alpha = standPat;
+      
+      if(now() >= duetime) return alpha;
 
       std::vector<Move> ponder = moves;
-
+      orderMoves(ponder);
       for(const auto &move : ponder){
          int to = move.end();
          if(!mailbox[to]) continue;
@@ -895,14 +959,14 @@ namespace Mufasa{
       return alpha;
    }
 
-   std::pair<int, Move> Bitboard::negaMax(int depth, int alpha, int beta, uint64_t start = 0, uint64_t time = oo){
+   std::pair<int, Move> Bitboard::negaMax(int depth, int alpha, int beta, std::vector<Move> &principle){
       int max = -oo;
       Move best = moves[0];
 
       nodes++;
 
-      if(now() - start >= time){
-         return {alpha, best};
+      if(now() >= duetime){
+         return {beta, best};
       }
       
       if(depth <= 0){
@@ -910,23 +974,61 @@ namespace Mufasa{
          return {max, best};
       }
       
+      TTEntry tthit = tt[zobrist & 0x7FFFFF];
+      Move ttmove;
+      
+      if(tthit.depth >= depth && tthit.key == zobrist){
+         tthits++;
+         ttmove = tthit.move;
+         
+         switch(tthit.type){
+            case EXACT:
+               return {tthit.score, tthit.move};
+            case LOWER:
+               if(tthit.score <= alpha)
+                  return {alpha, tthit.move};
+               break;
+            case UPPER:
+               if(tthit.score >= beta)
+                  return {beta, tthit.move};
+               break;
+         }
+      }
+
+
       std::vector<Move> ponder = moves;
-      orderMoves(ponder);
+      orderMoves(ponder, ttmove);
+      
+      std::vector<Move> next;
+      
+      EntryType nodeType = LOWER;
 
       for(const auto &move : ponder){
          makeMove(move);
-         auto [score, pv] = negaMax(depth - 1, -beta, -alpha, start, time);
+         std::vector<Move> continuation;
+         auto [score, pv] = negaMax(depth - 1, -beta, -alpha, continuation);
+         
+         if(repetitions[zobrist & 0x7FFFFF] >= 3) score = 0;
+
          unmakeMove(move);
          
          score = -score;
 
          if(score > max){
+            next = continuation;
             max = score;
-            alpha = max;
+            if(alpha < max){
+               alpha = max;
+               nodeType = EXACT;
+            }
+            
             best = move;
          }
 
-         if(alpha >= beta) break;
+         if(alpha >= beta){
+            nodeType = UPPER;
+            break;
+         }
       }
 
       if(!ponder.size()){ 
@@ -941,6 +1043,11 @@ namespace Mufasa{
          }
       }
       
+      principle = next;
+      principle.push_back(best);
+
+      tt[zobrist & 0x7FFFFF] = {zobrist, age++, depth, max, best, nodeType};
+
       return {max, best};
    }
    
@@ -1101,13 +1208,17 @@ namespace Mufasa{
       Piece before = mailbox[from];
       Piece after = before;
       
+      const BoardState* previous = &history.back();
+
       BoardState nextState;
       nextState.sideToMove = ++sideToMove();
       
-      nextState.castling = history.back().castling;   
+      nextState.castling = previous->castling;   
       nextState.captured = capture;
-      
-      //if(capture.getFigure() == Figure::KING) return false;
+      nextState.halfMoves = previous->halfMoves + 1;
+
+      if(color == Color::BLACK) nextState.fullMoves++;
+
       if(capture.getFigure() == Figure::ROOK){
          if(enemy == Color::WHITE){
             bool kingside  = (to % 8 == 7 && (to / 8 == 0));
@@ -1200,6 +1311,9 @@ namespace Mufasa{
       zobrist ^= history.back().zobristHash();
       history.push_back(nextState);
       zobrist ^= history.back().zobristHash();
+
+      repetitions[zobrist & 0x7FFFFF]++;
+
       fillMoves();
 
       return true;
@@ -1210,6 +1324,8 @@ namespace Mufasa{
       int from = move.start();
       int to = move.end();
       
+      repetitions[zobrist & 0x7FFFFF]--;
+
       Piece after = mailbox[to]; // piece that ended up on target square
       Piece before = Piece();    // piece that was before on target square
       Piece original = after;    // piece that was originally moved (necessary for promotions)
@@ -1299,7 +1415,7 @@ namespace Mufasa{
    }
 
    void Bitboard::printBoard(std::ostream &os) const{
-    os << "\n";
+    os << std::endl;
     for(int row = 7; row >= 0; row--){
          for(int col = 0; col < 8; col++){
             int sq = (8 * row + col);
@@ -1315,12 +1431,12 @@ namespace Mufasa{
             os << termcolor::reset;
          }
          
-         os << "  " << (row + 1) << "\n";
+         os << "  " << (row + 1) << std::endl;
       }
       
-      os << "\na b c d e f g h\n\n";
+      os << std::endl << "a b c d e f g h" << std::endl << std::endl;
    
-      os << "Zobrist: " << zobrist << "\n";
+      os << "Zobrist: " << zobrist << std::endl;
    }
 
    std::ostream& operator<<(std::ostream &os, const Bitboard &bb){

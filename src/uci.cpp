@@ -47,17 +47,17 @@ namespace Mufasa{
             go(is);
          }
          else{
-            std::cout << "Unknown command" << std::endl;
+            std::cout << "Unknown command: '" << token << "'" << std::endl;
          }
       }
    }
 
    void UCI::go(std::istringstream& is){
       std::string token;
-      
+
       uint64_t start = now();
       
-      uint16_t depth = 7;
+      uint16_t depth = 15;
       uint64_t wtime = 600000;
       uint64_t btime = 600000;
 
@@ -74,13 +74,14 @@ namespace Mufasa{
             is >> token;
             btime = std::stoi(token);
          }
+         else if(token == "movetime"){
+            is >> token;
+            wtime = std::stoi(token);
+            btime = wtime;
+         }
       }
       
       Limits limits = {start, depth, wtime, btime, wtime};
-      if(engine.getPlayer() == BLACK){
-         limits.alloc = btime;
-      }
-
       engine.bestMove(limits);
    }
 

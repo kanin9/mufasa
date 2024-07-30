@@ -12,8 +12,38 @@ namespace Mufasa{
    }
 
    void Engine::bestMove(Limits limits){
-      auto [score, move] =  board.bestMove(limits);
-      std::cout << "info depth " << limits.depth << " cp " << score << std::endl;
+      int depth = limits.depth;
+      int player = getPlayer();
+      int fullmoves = board.countFullMoves();
+      
+      uint64_t upperlimit = 30000ULL;
+      uint64_t lowerlimit = 100ULL;
+
+      uint64_t duetime = limits.start;
+      uint64_t accessible = 0;
+      
+      if(player == Color::WHITE){
+         accessible = limits.wtime;
+      }
+      else{
+         accessible = limits.btime;
+      }
+      
+      if(fullmoves <= 5){
+         upperlimit = 3000ULL;   
+      }
+      
+      accessible /= 7;
+      accessible = std::min(upperlimit, accessible);
+      accessible = std::max(lowerlimit, accessible);
+
+      duetime += accessible;
+
+      board.setDue(duetime, limits.start);
+
+      auto [score, move] = board.bestMove(depth);
+      
+      std::cout << "info depth " << depth << " score cp " << score << std::endl;
       std::cout << "bestmove " << move << std::endl;
    }
    
@@ -29,7 +59,7 @@ namespace Mufasa{
       if(depth == 1){
          if(depth == root){
             for(const auto &play : moves){
-               std::cout << play << ": 1\n";
+               std::cout << play << ": 1" << std::endl;
             }
          }
          return board.countMoves();
