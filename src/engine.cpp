@@ -14,13 +14,9 @@ namespace Mufasa{
    void Engine::bestMove(Limits limits){
       int depth = limits.depth;
       int player = getPlayer();
-      
       int gamephase = board.gamephase();
       int fullmoves = board.countFullMoves();
       
-      uint64_t upperlimit = 5000ULL;
-      uint64_t lowerlimit = 100ULL;
-
       uint64_t duetime = limits.start;
       uint64_t accessible = 0;
       
@@ -31,24 +27,29 @@ namespace Mufasa{
          accessible = limits.btime;
       }
       
-      if(fullmoves > 5){ 
-         upperlimit = (1000ULL * gamephase / 2ULL);
-         upperlimit += fullmoves * 300ULL;
-      }
+      uint64_t upperlimit = accessible / 5;
+      uint64_t lowerlimit = 100ULL;
 
-      std::cout << upperlimit << " " << fullmoves << std::endl;
+      // if the limit is zero then there is no limit
+      if(accessible){
+         accessible *= gamephase;
+         accessible *= fullmoves;
+         accessible /= 24;
+         accessible /= 120;
+
+         accessible = std::min(upperlimit, accessible);
+         accessible = std::max(lowerlimit, accessible);
+      }
+      else accessible = 3600000ULL;
       
-      accessible /= 6;
-      accessible = std::min(upperlimit, accessible);
-      accessible = std::max(lowerlimit, accessible);
+      // if the depth limit is zero then we go infinite depth
+      if(!depth) depth = 100;
 
       duetime += accessible;
-
       board.setDue(duetime, limits.start);
 
       auto [score, move] = board.bestMove(depth);
       
-      std::cout << "info depth " << depth << " score cp " << score << std::endl;
       std::cout << "bestmove " << move << std::endl;
    }
    

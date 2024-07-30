@@ -56,7 +56,7 @@ namespace Mufasa{
       
       std::string toString() const;
       friend std::ostream& operator<<(std::ostream& os, const Move& move);
-      friend operator==(const Move& lhs, const Move& rhs);
+      friend bool operator==(const Move& lhs, const Move& rhs);
    };
 
    const Move nullmove{};

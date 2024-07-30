@@ -49,7 +49,7 @@ namespace Mufasa{
       return os;
    }
 
-   operator==(const Move &lhs, const Move &rhs){
+   bool operator==(const Move &lhs, const Move &rhs){
       return (lhs.definition == rhs.definition);
    }
    

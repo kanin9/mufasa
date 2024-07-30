@@ -64,9 +64,9 @@ namespace Mufasa{
 
       uint64_t start = now();
       
-      uint16_t depth = 100;
-      uint64_t wtime = 600000;
-      uint64_t btime = 600000;
+      uint16_t depth = 0;
+      uint64_t wtime = 0;
+      uint64_t btime = 0;
 
       while(is >> token){
          if(token == "depth"){
@@ -87,7 +87,7 @@ namespace Mufasa{
             btime = wtime;
          }
       }
-      
+
       Limits limits = {start, depth, wtime, btime, wtime};
       engine.bestMove(limits);
    }
