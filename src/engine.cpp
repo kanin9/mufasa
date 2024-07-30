@@ -14,9 +14,11 @@ namespace Mufasa{
    void Engine::bestMove(Limits limits){
       int depth = limits.depth;
       int player = getPlayer();
+      
+      int gamephase = board.gamephase();
       int fullmoves = board.countFullMoves();
       
-      uint64_t upperlimit = 30000ULL;
+      uint64_t upperlimit = 5000ULL;
       uint64_t lowerlimit = 100ULL;
 
       uint64_t duetime = limits.start;
@@ -29,11 +31,14 @@ namespace Mufasa{
          accessible = limits.btime;
       }
       
-      if(fullmoves <= 5){
-         upperlimit = 3000ULL;   
+      if(fullmoves > 5){ 
+         upperlimit = (1000ULL * gamephase / 2ULL);
+         upperlimit += fullmoves * 300ULL;
       }
+
+      std::cout << upperlimit << " " << fullmoves << std::endl;
       
-      accessible /= 7;
+      accessible /= 6;
       accessible = std::min(upperlimit, accessible);
       accessible = std::max(lowerlimit, accessible);
 

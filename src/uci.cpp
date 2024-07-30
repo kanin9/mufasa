@@ -57,7 +57,7 @@ namespace Mufasa{
 
       uint64_t start = now();
       
-      uint16_t depth = 15;
+      uint16_t depth = 100;
       uint64_t wtime = 600000;
       uint64_t btime = 600000;
 

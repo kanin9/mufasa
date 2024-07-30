@@ -843,6 +843,23 @@ namespace Mufasa{
       initime = start;
    }
    
+   // Used for time management only
+   int Bitboard::gamephase() const{
+      int gamephase = 0;
+      uint64_t pieces = fullboard;
+      
+      while(pieces != 0){
+         int sq = bitScanPop(pieces);
+         int fig = mailbox[sq].getFigure() - 1;
+
+         gamephase += gamephaseInc[fig];
+      }
+      
+      if(gamephase > 24) gamephase = 24;
+
+      return gamephase;
+   }
+
    int Bitboard::evaluate(){
       int mgScore = 0;
       int egScore = 0;
@@ -1216,6 +1233,7 @@ namespace Mufasa{
       nextState.castling = previous->castling;   
       nextState.captured = capture;
       nextState.halfMoves = previous->halfMoves + 1;
+      nextState.fullMoves = previous->fullMoves;
 
       if(color == Color::BLACK) nextState.fullMoves++;
 

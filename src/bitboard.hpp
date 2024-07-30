@@ -72,7 +72,7 @@ namespace Mufasa{
       int doublePushSq = -1;
       int epTargetSq   = -1; 
       int halfMoves    =  0;
-      int fullMoves    =  1;
+      int fullMoves    =  0;
 
       BoardState(){}
 
@@ -131,8 +131,9 @@ namespace Mufasa{
       
       void setDue(uint64_t due, uint64_t start);
       const std::vector<Move> getMoves();
-
+      
       int evaluate();
+      int gamephase() const;
       int quietSearch(int alpha, int beta);
       std::pair<int, Move> negaMax(int depth, int alpha, int beta, std::vector<Move> &principle);
       std::pair<int, Move> bestMove(int depth);
