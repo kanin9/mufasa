@@ -18,7 +18,7 @@ namespace Mufasa{
          Engine engine;
          void greet();
          
-         void uci(std::istringstream &is);
+         void uci();
          void go(std::istringstream &is);
          void bench(std::istringstream &is);
          void position(std::istringstream& is);

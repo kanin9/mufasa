@@ -26,7 +26,7 @@ namespace Mufasa{
             continue;
          }
          else if(token == "uci"){
-            uci(is);
+            uci();
          }
          else if(token == "position"){
             position(is);
@@ -53,7 +53,7 @@ namespace Mufasa{
    }
    
    // @tissatussa remarks
-   void UCI::uci(std::istringstream& is){
+   void UCI::uci(){
       std::cout << "id name Mufasa 0.2.0" << std::endl;
       std::cout << "id author Sirgaliyev Alikhan" << std::endl;
       std::cout << "uciok" << std::endl;
