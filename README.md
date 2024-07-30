@@ -24,6 +24,7 @@ Mufasa's move generator can traverse over **80,000,000** nodes (moves) per secon
 Make sure you have C++17 and CMake installed on your desktop.
 
 Clone the repository and run
+
 ```sh
     cmake . -DCMAKE_BUILD_TYPE=Release ; cmake --build .
 ```
@@ -31,6 +32,7 @@ Clone the repository and run
 ## Testing
 
 If you want to compile the binary with tests run
+
 ```sh
     cmake . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON ; cmake --build .
 ```
