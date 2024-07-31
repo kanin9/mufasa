@@ -8,7 +8,7 @@ namespace Mufasa{
    }
 
    void UCI::greet(){
-      std::cout << "Mufasa 0.2.0 by Sirgaliyev Alikhan" << std::endl;
+      std::cout << "Mufasa 0.2.1 by Sirgaliyev Alikhan" << std::endl;
    }
 
    void UCI::loop(std::istream &input){
@@ -54,7 +54,7 @@ namespace Mufasa{
    
    // @tissatussa remarks
    void UCI::uci(){
-      std::cout << "id name Mufasa 0.2.0" << std::endl;
+      std::cout << "id name Mufasa 0.2.1" << std::endl;
       std::cout << "id author Sirgaliyev Alikhan" << std::endl;
       std::cout << "uciok" << std::endl;
    }
