@@ -994,24 +994,26 @@ namespace Mufasa{
       TTEntry tthit = tt[zobrist & 0x7FFFFF];
       Move ttmove;
       
-      if(tthit.depth >= depth && tthit.key == zobrist){
-         tthits++;
+      if(tthit.key == zobrist){
          ttmove = tthit.move;
-         
-         switch(tthit.type){
-            case EXACT:
-               return {tthit.score, tthit.move};
-            case LOWER:
-               if(tthit.score <= alpha)
-                  return {alpha, tthit.move};
-               break;
-            case UPPER:
-               if(tthit.score >= beta)
-                  return {beta, tthit.move};
-               break;
+      
+         if(tthit.depth >= depth){
+            tthits++;
+
+            switch(tthit.type){
+               case EXACT:
+                  return {tthit.score, tthit.move};
+               case LOWER:
+                  if(tthit.score <= alpha)
+                     return {alpha, tthit.move};
+                  break;
+               case UPPER:
+                  if(tthit.score >= beta)
+                     return {beta, tthit.move};
+                  break;
+            }
          }
       }
-
 
       std::vector<Move> ponder = moves;
       orderMoves(ponder, ttmove);
